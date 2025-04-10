@@ -1,3 +1,18 @@
+-- 1. Primary and Foreign Keys in Maven Movies DB
+-- PRIMARY KEYS: actor.actor_id, customer.customer_id, film.film_id, rental.rental_id, payment.payment_id, inventory.inventory_id, store.store_id, address.address_id, city.city_id, country.country_id
+-- FOREIGN KEYS: 
+-- customer.address_id -> address.address_id
+-- address.city_id -> city.city_id
+-- city.country_id -> country.country_id
+-- inventory.film_id -> film.film_id
+-- inventory.store_id -> store.store_id
+-- rental.inventory_id -> inventory.inventory_id
+-- rental.customer_id -> customer.customer_id
+-- payment.rental_id -> rental.rental_id
+-- payment.customer_id -> customer.customer_id
+-- payment.staff_id -> staff.staff_id
+-- Differences: PRIMARY KEY uniquely identifies a row. FOREIGN KEY creates a relationship between two tables.
+
 use  mavenmovies;
 -- 2- List all details of actors
 select * from actor;
@@ -442,6 +457,68 @@ ORDER BY rental_month;
 
 -- 11. CTE and Self-Join:
 -- CREate a CTE to generate a report showing pairs of actors who have appeared in the same film together, using the film_actor table
-select * from actor
+WITH ActorPairsInSameFilm AS (
+SELECT
+        fa1.film_id,          
+        fa1.actor_id AS actor1_id, 
+        fa2.actor_id AS actor2_id  
+    FROM
+        film_actor fa1    
+    INNER JOIN
+        film_actor fa2   
+        ON fa1.film_id = fa2.film_id 
+    WHERE
+        fa1.actor_id < fa2.actor_id  
+                                    
+)
+SELECT
+    film_id,
+    actor1_id,
+    actor2_id
+FROM
+    ActorPairsInSameFilm
+ORDER BY
+    film_id,       
+    actor1_id,
+    actor2_id;
 
+-- 12. CTE for Recursive Search:
+-- a. Implement a recursive CTE to find all employees in the staff table who report to a specific manager, considering the reports_to column
 
+ALTER VIEW Employee_details AS (
+    SELECT
+		st.staff_id,
+        s.store_id,
+        st.first_name,
+        st.last_name,
+        s.manager_staff_id
+    FROM staff st
+    JOIN store s ON s.store_id = st.store_id
+);
+
+WITH  RECURSIVE EMPLOYEE_LEVEL AS (
+SELECT  
+		staff_id
+        store_id,
+        first_name,
+        last_name,
+        manager_staff_id,
+        0 as level
+    FROM Employee_details
+    where manager_staff_id = 1
+
+    union all
+    
+SELECT 
+        ED.staff_id,
+        ED.store_id,
+        ED.first_name,
+        ED.last_name,
+        ED.manager_staff_id,
+		level + 1
+	FROM  Employee_details AS ED
+	JOIN EMPLOYEE_LEVEL AS EL ON EL.store_id = ED.manager_staff_id
+
+)
+
+SELECT * FROM EMPLOYEE_LEVEL;
